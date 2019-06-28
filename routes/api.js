@@ -37,7 +37,8 @@ var stockSchema = new mongoose.Schema({
   likes: {
     type: Number,
     default: 0
-  }
+  },
+  ips: []
 });
 var Stock = mongoose.model("Stock", stockSchema);
 
@@ -55,19 +56,24 @@ module.exports = function (app) {
 
   app.route('/api/stock-prices')
     .get(function (req, res){
-      var stock = req.query.stock;
-      stock = stock.toUpperCase();
-      var like = req.query.like;
-      var update = {};
+      // Get users IP Address
+      var xf = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+      var ip = xf.split(",")[0];
+    
       // Get data from iex
       const quote = async (sym) => {
         const quoteData = await iex.quote(sym);
+        // Get user input
+        var stock = req.query.stock;
+        stock = stock.toUpperCase();
+        var like = req.query.like;
+
         // Build object to update
+        var update = {};
         update.stock = quoteData.symbol;
-        // update.price = quoteData.latestPrice;
         if(like){
-          update.$inc = {
-            likes: 1
+          update.$addToSet = {
+            ips: ip
           }
         }
         // Create new entry or update one if it exists
@@ -80,14 +86,17 @@ module.exports = function (app) {
             var stockData = {};
             stockData.stock = addedStock.stock;
             stockData.price = quoteData.latestPrice;
-            stockData.likes = addedStock.likes;
+            // Count unique IP address' of people who liked the stock
+            stockData.likes = addedStock.ips.length;
             // Respond with object containing relevant data
             res.json(stockData);
           }
         })
       }
       // Run async function
-      quote(stock);
+      if(typeof req.query.stock === "string"){
+        quote(req.query.stock);
+      }
     });
   
 };
