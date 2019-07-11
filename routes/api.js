@@ -59,12 +59,15 @@ module.exports = function (app) {
       // Get users IP Address
       var xf = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
       var ip = xf.split(",")[0];
+      // Using temp variable to return data from asyn function
+      var tempData = {};
     
       // Get data from iex
       const quote = async (sym) => {
         const quoteData = await iex.quote(sym);
+        
         // Get user input
-        var stock = req.query.stock;
+        var stock = sym;
         stock = stock.toUpperCase();
         var like = req.query.like;
 
@@ -77,26 +80,53 @@ module.exports = function (app) {
           }
         }
         // Create new entry or update one if it exists
-        Stock.findOneAndUpdate({stock: stock}, update, {upsert: true, new: true}, function(err, addedStock){
+        const dataBaseUpdate = await Stock.findOneAndUpdate({stock: stock}, update, {upsert: true, new: true}, function(err, addedStock){
           if(err){
             console.log(err)
           } else {
             console.log("Stock " + addedStock.stock + " added or updated");
+            
+            // Clear variable to make way for next stock
+            tempData = {};
             // Build object to return
-            var stockData = {};
-            stockData.stock = addedStock.stock;
-            stockData.price = quoteData.latestPrice;
+            tempData.stock = addedStock.stock;
+            tempData.price = quoteData.latestPrice;
             // Count unique IP address' of people who liked the stock
-            stockData.likes = addedStock.ips.length;
+            tempData.likes = addedStock.ips.length;
             // Respond with object containing relevant data
-            res.json(stockData);
+            console.log("tempData 1", tempData)
+            return tempData;
           }
-        })
+        });
+        console.log("tempData outside function", tempData);
+        return await tempData;
       }
       // Run async function
-      if(typeof req.query.stock === "string"){
-        quote(req.query.stock);
+      async function start(quote){
+        if(typeof req.query.stock == "string"){
+          // Single
+          var result = {"stockData": {}};
+          result.stockData = await quote(req.query.stock);
+          res.json(result);
+        } else {
+          // Multiple
+          var result = {"stockData": []};
+          var result1 = await quote(req.query.stock[0]);
+          result.stockData.push(result1);
+          
+          var result2 = await quote(req.query.stock[1]);
+          result.stockData.push(result2);
+          result.stockData[0].rel_likes = result.stockData[0].likes - result.stockData[1].likes;
+          result.stockData[1].rel_likes = result.stockData[1].likes - result.stockData[0].likes;
+          delete result.stockData[0].likes;
+          delete result.stockData[1].likes;
+          res.json(result);
+        }
+        
+        
       }
+    
+      start(quote);
     });
   
 };
