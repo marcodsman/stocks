@@ -94,11 +94,9 @@ module.exports = function (app) {
             // Count unique IP address' of people who liked the stock
             tempData.likes = addedStock.ips.length;
             // Respond with object containing relevant data
-            console.log("tempData 1", tempData)
             return tempData;
           }
         });
-        console.log("tempData outside function", tempData);
         return await tempData;
       }
       // Run async function

@@ -22,23 +22,56 @@ suite('Functional Tests', function() {
         .get('/api/stock-prices')
         .query({stock: 'goog'})
         .end(function(err, res){
-          
-          //complete this one too
-          
+          assert.equal(res.status, 200);
+          assert.property(res.body, "stockData");
+          assert.property(res.body.stockData, "stock");
+          assert.property(res.body.stockData, "price");
+          assert.property(res.body.stockData, "likes");
           done();
         });
       });
       
       test('1 stock with like', function(done) {
-        
+        chai.request(server)
+          .get('/api/stock-prices')
+          .query({stock: 'aon', like: true})
+          .end(function(err, res){
+            assert.equal(res.status, 200);
+            assert.property(res.body, "stockData");
+            assert.property(res.body.stockData, "stock");
+            assert.property(res.body.stockData, "price");
+            assert.property(res.body.stockData, "likes");
+            assert.isAtLeast(res.body.stockData.likes, 1);
+            done();
+        })
       });
       
       test('1 stock with like again (ensure likes arent double counted)', function(done) {
-        
+        chai.request(server)
+          .get('/api/stock-prices')
+          .query({stock: 'aon', like: true})
+          .end(function(err,res){
+            assert.equal(res.status, 200);
+            // assert.property(res.body, "stockData");
+            // assert.property(res.body.stockData, "stock");
+            // assert.property(res.body.stockData, "price");
+            // assert.property(res.body.stockData, "likes");
+            // assert.isBelow(res.body.stockData.likes, 2);
+            // done();
+        })
       });
       
       test('2 stocks', function(done) {
-        
+        chai.request(server)
+          .get('/api/stock-prices')
+          .query({stock: ['aon','ajg']})
+          .end(function(err, res){
+            // assert.equal(res.status, 200);
+            // assert.property(res.body, "stockData");
+            // assert.isArray(res.body.stockData);
+            
+            // done();
+        })
       });
       
       test('2 stocks with like', function(done) {
