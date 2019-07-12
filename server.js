@@ -22,6 +22,13 @@ app.use(bodyParser.urlencoded({ extended: true }));
 // ============================================================
 // WARNING: BLOCKING CROSS SITE SCRIPTING WILL BLOCK JQUERY ETC
 // ============================================================
+const helmet = require("helmet");
+app.use(helmet.contentSecurityPolicy({
+  directives: {
+    defaultSrc: ["'self'", 'code.jquery.com'],
+    styleSrc: ["'self'"]
+  }
+}));
 
 //Index page (static HTML)
 app.route('/')
